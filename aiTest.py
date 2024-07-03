@@ -40,13 +40,17 @@ def select_audio_device():
     print(f"Selected Device {device_index}: {devices[device_index]['name']}")
     return device_index
 
-# Function to record audio
-def record_audio(device_index):
+# Function to record audio(changed the recording audio function as well)
+def record_audio():
+    global recording
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 44100
     WAVE_OUTPUT_FILENAME = "input.wav"
+    
+    device_index = select_audio_device()
+    
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
@@ -56,7 +60,6 @@ def record_audio(device_index):
                     frames_per_buffer=CHUNK)
     print("* recording")
     frames = []
-    # Recording loop
     while recording:
         data = stream.read(CHUNK)
         frames.append(data)
@@ -150,19 +153,37 @@ def handle_conversation():
     text_to_speech_stream(text)
     print("\nAI:", text)
     record = "AI: " + text + "\n"
-    while True:
-        # Wait for user to start recording
-        with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-            listener.join()
-        transcript_result = transcribe_audio("input.wav")
-        record += "User: " + transcript_result + "\n"
-        print("\nYou: ", transcript_result)
-        if transcript_result.lower() == "end":
-            break
-        ai_response = generate_response(transcript_result)
-        record += "AI: " + ai_response + "\n"
-        print("\nAI: ", ai_response)
-        text_to_speech_stream(ai_response)
 
-# Start conversation
-handle_conversation()
+    # Create a keyboard listener that runs in the background
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+    listener.start()
+
+    try:
+        while True:
+            print("\nPress Right Ctrl to start recording, Left Shift to stop.")
+            # Wait for the recording to complete
+            while not recording:
+                pass
+            while recording:
+                pass
+
+            # Once recording is done, transcribe the audio
+            transcript_result = transcribe_audio("input.wav")
+            record += "User: " + transcript_result + "\n"
+            print("\nYou:", transcript_result)
+
+            if transcript_result.lower() == "end":
+                break
+
+            ai_response = generate_response(transcript_result)
+            record += "AI: " + ai_response + "\n"
+            print("\nAI:", ai_response)
+            text_to_speech_stream(ai_response)
+
+    finally:
+        # Stop the keyboard listener when we're done
+        listener.stop()
+#This is supposed to be the end(I dont know if this will work or not because I am blacklisted from testing the API out but do give it a try a let me know)
+if __name__ == "__main__":
+    list_audio_devices()
+    handle_conversation()
